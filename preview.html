@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parallax Space - ค้นหาห้องพัก พร้อมเข้าอยู่</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            studio: {
+              bg: '#f8f6f0',
+              card: '#ffffff',
+              accent: '#d97736',
+              accentHover: '#c46425',
+              dark: '#222222',
+              muted: '#666666'
+            }
+          },
+          fontFamily: { sans: ['Prompt', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Prompt', sans-serif; background-color: #f8f6f0; color: #222222; }
+    .studio-shadow { box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05); }
+    .studio-card-shadow { box-shadow: 0 15px 35px -5px rgba(217, 119, 54, 0.08), 0 5px 15px rgba(0, 0, 0, 0.04); }
+  </style>
+</head>
+<body class="bg-[#f8f6f0] text-[#222222] antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const INITIAL_PROPERTIES = [
+      { id: '1', title: 'Ashton Asoke Modern Luxury Suite', category: 'คอนโด', location: 'สุขุมวิท - อโศก (ติด BTS อโศก)', price: 35000, bedrooms: 1, bathrooms: 1, area_sqm: 48, image_url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80', status: 'available', near_bts: true },
+      { id: '2', title: 'Nanthawan Bangna Luxury House', category: 'บ้านเดี่ยว', location: 'บางนา - ตราด กม.7', price: 120000, bedrooms: 4, bathrooms: 5, area_sqm: 350, image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80', status: 'available', near_bts: false },
+      { id: '3', title: 'Life One Wireless Executive Penthouse', category: 'คอนโด', location: 'วิทยุ - ชิดลม (ใกล้ BTS เพลินจิต)', price: 45000, bedrooms: 2, bathrooms: 2, area_sqm: 65, image_url: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80', status: 'reserved', near_bts: true },
+      { id: '4', title: 'Pleno Modern Townhome Ratchapruek', category: 'ทาวน์โฮม', location: 'ราชพฤกษ์ - สาทร', price: 25000, bedrooms: 3, bathrooms: 2, area_sqm: 120, image_url: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80', status: 'rented', near_bts: false },
+      { id: '5', title: 'Noble Ploenchit Sky Villa', category: 'คอนโด', location: 'เพลินจิต (ติด BTS)', price: 55000, bedrooms: 2, bathrooms: 2, area_sqm: 75, image_url: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80', status: 'available', near_bts: true },
+      { id: '6', title: 'Grand Bangkok Boulevard Ekamai', category: 'บ้านเดี่ยว', location: 'เอกมัย - รามอินทรา', price: 150000, bedrooms: 5, bathrooms: 6, area_sqm: 420, image_url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80', status: 'available', near_bts: false }
+    ];
+
+    const INITIAL_BOOKINGS = [
+      { id: 'b1', propertyTitle: 'Ashton Asoke Modern Luxury Suite', name: 'สมชาย มั่นคง', phone: '081-234-5678', moveInDate: '2026-07-15', note: 'สนใจสัญญาเช่า 1 ปี ต้องการที่จอดรถ 1 คัน', status: 'pending', createdAt: '29/06/2026 14:30' },
+      { id: 'b2', propertyTitle: 'Life One Wireless Executive Penthouse', name: 'สิรินธร สุขสวัสดิ์', phone: '089-876-5432', moveInDate: '2026-08-01', note: 'ขอนัดชมห้องช่วงวันเสาร์ช่วงบ่าย', status: 'contacted', createdAt: '28/06/2026 10:15' }
+    ];
+
+    function App() {
+      const [properties, setProperties] = useState(INITIAL_PROPERTIES);
+      const [bookings, setBookings] = useState(INITIAL_BOOKINGS);
+      const [category, setCategory] = useState('ALL');
+      const [statusFilter, setStatusFilter] = useState('ALL');
+      const [viewMode, setViewMode] = useState('HOME'); // 'HOME' or 'ADMIN'
+      const [showModal, setShowModal] = useState(false);
+      const [selectedProperty, setSelectedProperty] = useState(null);
+
+      // Booking Form State
+      const [bookingForm, setBookingForm] = useState({ name: '', phone: '', moveInDate: '', note: '' });
+
+      // Admin Form & State
+      const [showAddForm, setShowAddForm] = useState(false);
+      const [adminTab, setAdminTab] = useState('ALL');
+      const [formData, setFormData] = useState({
+        title: '',
+        category: 'คอนโด',
+        location: '',
+        price: '',
+        bedrooms: 1,
+        bathrooms: 1,
+        area_sqm: 35,
+        image_url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80'
+      });
+
+      const updateStatus = (id, newStatus) => {
+        setProperties(properties.map(p => p.id === id ? { ...p, status: newStatus } : p));
+      };
+
+      const deleteProperty = (id) => {
+        if (confirm('คุณต้องการลบโพสต์ห้องนี้ใช่หรือไม่?')) {
+          setProperties(properties.filter(p => p.id !== id));
+        }
+      };
+
+      const handleAddProperty = (e) => {
+        e.preventDefault();
+        if (!formData.title || !formData.price) return;
+        const newProp = {
+          ...formData,
+          id: String(Date.now()),
+          price: Number(formData.price),
+          bedrooms: Number(formData.bedrooms),
+          bathrooms: Number(formData.bathrooms),
+          area_sqm: Number(formData.area_sqm),
+          status: 'available'
+        };
+        setProperties([newProp, ...properties]);
+        setShowAddForm(false);
+        setFormData({ title: '', category: 'คอนโด', location: '', price: '', bedrooms: 1, bathrooms: 1, area_sqm: 35, image_url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80' });
+      };
+
+      const handleBookingSubmit = (e) => {
+        e.preventDefault();
+        if (!bookingForm.name || !bookingForm.phone) return;
+        const newBooking = {
+          id: `b-${Date.now()}`,
+          propertyTitle: selectedProperty ? selectedProperty.title : 'สอบถามห้องพักทั่วไป',
+          name: bookingForm.name,
+          phone: bookingForm.phone,
+          moveInDate: bookingForm.moveInDate,
+          note: bookingForm.note,
+          status: 'pending',
+          createdAt: new Date().toLocaleString('th-TH')
+        };
+        setBookings([newBooking, ...bookings]);
+        alert('ส่งข้อมูลนัดชมห้องเรียบร้อยแล้ว! รายชื่อของคุณจะเด้งไปที่ระบบหลังบ้านทันที');
+        setShowModal(false);
+        setBookingForm({ name: '', phone: '', moveInDate: '', note: '' });
+      };
+
+      const filtered = properties.filter(p => {
+        if (p.status === 'archived' && viewMode !== 'ADMIN') return false;
+        if (category !== 'ALL' && p.category !== category) return false;
+        if (statusFilter !== 'ALL' && p.status !== statusFilter) return false;
+        return true;
+      });
+
+      // RENDER FULL ADMIN PAGE VIEW
+      if (viewMode === 'ADMIN') {
+        const adminFiltered = adminTab === 'ALL' ? properties : properties.filter(p => p.status === adminTab);
+        const pendingCount = bookings.filter(b => b.status === 'pending').length;
+
+        return (
+          <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+            <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 sticky top-0 z-50 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">🛡️</span>
+                <div>
+                  <h1 className="text-xl font-bold text-white">ระบบหลังบ้านผู้ดูแลระบบ (Admin Dashboard)</h1>
+                  <p className="text-xs text-amber-400">จัดการโพสต์ เช็ครายการนัดหมายนัดชมห้องพักจากลูกค้าแบบ Real-time</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setViewMode('HOME')}
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-all"
+              >
+                ⬅️ กลับหน้าหลักเว็บไซต์
+              </button>
+            </header>
+
+            <main className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full space-y-6">
+              {/* Stats Bar */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="bg-slate-900 p-4 rounded-2xl border border-teal-500/40 col-span-2 md:col-span-1">
+                  <p className="text-xs text-teal-400 font-bold">📩 นัดชมห้องใหม่</p>
+                  <p className="text-2xl font-bold text-teal-300 mt-1">{pendingCount} รายการ</p>
+                </div>
+                <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                  <p className="text-xs text-slate-400">อสังหาริมทรัพย์ทั้งหมด</p>
+                  <p className="text-2xl font-bold text-white mt-1">{properties.length} รายการ</p>
+                </div>
+                <div className="bg-slate-900 p-4 rounded-2xl border border-emerald-500/30">
+                  <p className="text-xs text-emerald-400">ว่างพร้อมเช่า (Available)</p>
+                  <p className="text-2xl font-bold text-emerald-300 mt-1">{properties.filter(p => p.status === 'available').length} ห้อง</p>
+                </div>
+                <div className="bg-slate-900 p-4 rounded-2xl border border-amber-500/30">
+                  <p className="text-xs text-amber-400">ติดจอง (Reserved)</p>
+                  <p className="text-2xl font-bold text-amber-300 mt-1">{properties.filter(p => p.status === 'reserved').length} ห้อง</p>
+                </div>
+                <div className="bg-slate-900 p-4 rounded-2xl border border-rose-500/30">
+                  <p className="text-xs text-rose-400">ปล่อยแล้ว (Rented)</p>
+                  <p className="text-2xl font-bold text-rose-300 mt-1">{properties.filter(p => p.status === 'rented').length} ห้อง</p>
+                </div>
+              </div>
+
+              {/* BOOKINGS MANAGEMENT SECTION */}
+              <div className="bg-slate-900 p-6 rounded-2xl border border-teal-500/30 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <span>📩 รายการนัดชมห้องพัก & จองล่าสุดจากลูกค้า</span>
+                      {pendingCount > 0 && <span className="bg-rose-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse font-bold">{pendingCount} ใหม่</span>}
+                    </h2>
+                    <p className="text-xs text-slate-400">รายชื่อและเบอร์โทรศัพท์ของผู้สนใจที่ส่งฟอร์มเข้ามาผ่านหน้าเว็บ</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {bookings.map(b => (
+                    <div key={b.id} className={`p-4 rounded-xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${b.status === 'pending' ? 'bg-slate-950 border-teal-500/40' : 'bg-slate-950/40 border-slate-800 opacity-75'}`}>
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${b.status === 'pending' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
+                            {b.status === 'pending' ? '⏳ รอนัดหมาย/ติดต่อกลับ' : '✅ ติดต่อเรียบร้อยแล้ว'}
+                          </span>
+                          <span className="text-[11px] text-slate-500">{b.createdAt}</span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white">👤 {b.name} <a href={`tel:${b.phone}`} className="text-teal-400 underline ml-2">📞 {b.phone}</a></h4>
+                        <p className="text-xs text-slate-300">🏢 ห้องที่สนใจ: <span className="text-emerald-400 font-bold">{b.propertyTitle}</span></p>
+                        {b.moveInDate && <p className="text-xs text-slate-400">📅 พร้อมเข้าอยู่ประมาณ: {b.moveInDate}</p>}
+                        {b.note && <p className="text-xs text-slate-400 italic">" {b.note} "</p>}
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        {b.status === 'pending' ? (
+                          <button onClick={() => setBookings(bookings.map(x => x.id === b.id ? {...x, status: 'contacted'} : x))} className="px-3 py-1.5 bg-emerald-500 text-slate-950 text-xs font-bold rounded-lg hover:bg-emerald-400">
+                            ✓ ทำเครื่องหมาย: ติดต่อแล้ว
+                          </button>
+                        ) : (
+                          <button onClick={() => setBookings(bookings.map(x => x.id === b.id ? {...x, status: 'pending'} : x))} className="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs rounded-lg">
+                            เปลี่ยนเป็นรอนัดหมาย
+                          </button>
+                        )}
+                        <button onClick={() => setBookings(bookings.filter(x => x.id !== b.id))} className="text-slate-500 hover:text-rose-400 text-xs p-1">🗑️</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Bar */}
+              <div className="flex items-center justify-between bg-slate-900 p-6 rounded-2xl border border-slate-800">
+                <div>
+                  <h2 className="text-lg font-bold text-white">จัดการรายการโพสต์ห้องพัก</h2>
+                  <p className="text-xs text-slate-400">ลงประกาศเพิ่มห้อง หรือลบห้องที่ย้ายออกแล้ว</p>
+                </div>
+                <button 
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg transition-all"
+                >
+                  {showAddForm ? 'ปิดฟอร์ม' : '+ ลงประกาศเพิ่มห้องพักใหม่'}
+                </button>
+              </div>
+
+              {/* Add Form */}
+              {showAddForm && (
+                <form onSubmit={handleAddProperty} className="bg-slate-900 p-6 rounded-2xl border border-emerald-500/40 grid grid-cols-1 md:grid-cols-3 gap-4 animate-fade-in">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">ชื่ออสังหาริมทรัพย์ / ห้องพัก *</label>
+                    <input type="text" required placeholder="เช่น Ashton Asoke Modern Luxury Suite" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">หมวดหมู่</label>
+                    <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white">
+                      <option value="คอนโด">คอนโด</option>
+                      <option value="บ้านเดี่ยว">บ้านเดี่ยว</option>
+                      <option value="ทาวน์โฮม">ทาวน์โฮม</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">ทำเล / ตำแหน่ง *</label>
+                    <input type="text" required placeholder="เช่น สุขุมวิท - อโศก" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">ราคาเช่า (บาท/เดือน) *</label>
+                    <input type="number" required placeholder="35000" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white" />
+                  </div>
+                  <div className="md:col-span-3 flex justify-end space-x-2 pt-2">
+                    <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">ยกเลิก</button>
+                    <button type="submit" className="px-5 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-bold">บันทึกห้องพัก</button>
+                  </div>
+                </form>
+              )}
+
+              {/* Admin Tabs */}
+              <div className="flex space-x-2 bg-slate-900 p-2 rounded-xl border border-slate-800 overflow-x-auto">
+                {['ALL', 'available', 'reserved', 'rented', 'archived'].map(tab => (
+                  <button key={tab} onClick={() => setAdminTab(tab)} className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap ${adminTab === tab ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:bg-slate-800'}`}>
+                    {tab === 'ALL' ? 'ทั้งหมด' : tab} ({tab === 'ALL' ? properties.length : properties.filter(p => p.status === tab).length})
+                  </button>
+                ))}
+              </div>
+
+              {/* Property List */}
+              <div className="space-y-3">
+                {adminFiltered.map(p => (
+                  <div key={p.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex items-center space-x-4">
+                      <img src={p.image_url} className="w-16 h-16 rounded-xl object-cover border border-slate-700" />
+                      <div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-emerald-400">{p.category}</span>
+                        <h4 className="text-sm font-bold text-white mt-1">{p.title}</h4>
+                        <p className="text-xs text-slate-400">{p.location} • <span className="text-emerald-400 font-bold">฿{p.price.toLocaleString()}</span>/เดือน</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+                      <div className="grid grid-cols-4 gap-1">
+                        <button onClick={() => updateStatus(p.id, 'available')} className={`px-2 py-1 rounded text-[10px] font-bold ${p.status === 'available' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>ว่าง</button>
+                        <button onClick={() => updateStatus(p.id, 'reserved')} className={`px-2 py-1 rounded text-[10px] font-bold ${p.status === 'reserved' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>ติดจอง</button>
+                        <button onClick={() => updateStatus(p.id, 'rented')} className={`px-2 py-1 rounded text-[10px] font-bold ${p.status === 'rented' ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400'}`}>ปล่อยแล้ว</button>
+                        <button onClick={() => updateStatus(p.id, 'archived')} className={`px-2 py-1 rounded text-[10px] font-bold ${p.status === 'archived' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400'}`}>ซ่อน</button>
+                      </div>
+                      <button onClick={() => deleteProperty(p.id)} className="px-3 py-1 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded-lg text-xs font-bold transition-all border border-rose-500/30 ml-2">
+                        🗑️ ลบโพสต์
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </main>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen flex flex-col bg-[#f8f6f0]">
+          
+          {/* Header */}
+          <header className="bg-white border-b border-gray-200/60 sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+              
+              <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setCategory('ALL')}>
+                <div className="w-8 h-8 rounded-full border-2 border-[#222] flex items-center justify-center font-bold text-sm">PS</div>
+                <span className="text-xl font-bold tracking-tight text-[#222]">Parallax<span className="font-light text-[#666]">Space</span></span>
+              </div>
+
+              <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-[#444]">
+                <button onClick={() => setCategory('ALL')} className={`hover:text-[#d97736] transition-colors ${category === 'ALL' ? 'text-[#d97736] font-bold' : ''}`}>หน้าแรก</button>
+                <button onClick={() => setCategory('บ้านเดี่ยว')} className={`hover:text-[#d97736] transition-colors ${category === 'บ้านเดี่ยว' ? 'text-[#d97736] font-bold' : ''}`}>บ้านเดี่ยว</button>
+                <button onClick={() => setCategory('คอนโด')} className={`hover:text-[#d97736] transition-colors ${category === 'คอนโด' ? 'text-[#d97736] font-bold' : ''}`}>คอนโด</button>
+                <button onClick={() => setCategory('ทาวน์โฮม')} className={`hover:text-[#d97736] transition-colors ${category === 'ทาวน์โฮม' ? 'text-[#d97736] font-bold' : ''}`}>ทาวน์โฮม</button>
+                <button onClick={() => setStatusFilter(statusFilter === 'available' ? 'ALL' : 'available')} className="text-[#d97736] font-semibold hover:underline flex items-center">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+                  สถานะห้องว่าง
+                </button>
+              </nav>
+
+              <div className="flex items-center space-x-3">
+                <button 
+                  onClick={() => setViewMode('ADMIN')}
+                  className="px-4 py-2 rounded-full text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md transition-all flex items-center space-x-1"
+                >
+                  <span>🛡️ เปิดระบบหลังบ้าน (Admin)</span>
+                </button>
+                <button onClick={() => { setSelectedProperty(null); setShowModal(true); }} className="px-6 py-2.5 rounded-full bg-[#d97736] hover:bg-[#c46425] text-white font-medium text-sm transition-all shadow-md shadow-[#d97736]/20">
+                  ติดต่อสอบถาม
+                </button>
+              </div>
+
+            </div>
+          </header>
+
+          {/* Hero Section */}
+          <section className="relative max-w-7xl mx-auto px-6 py-12 md:py-16 grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+            <div className="md:col-span-6 space-y-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-[#222] tracking-tight leading-[1.15]">
+                ค้นหาห้องพัก <br /><span className="text-[#d97736]">พร้อมเข้าอยู่</span>
+              </h1>
+              <p className="text-gray-600 text-base sm:text-lg font-light max-w-lg leading-relaxed">
+                คัดสรรโครงการตกแต่งครบ พร้อมตรวจเช็คสถานะห้องว่าง Real-time ตอบโจทย์ไลฟ์สไตล์ทุกการอยู่อาศัย
+              </p>
+              <div>
+                <button onClick={() => { document.getElementById('grid-section').scrollIntoView({ behavior: 'smooth' }); }} className="px-8 py-3.5 rounded-full bg-[#d97736] hover:bg-[#c46425] text-white font-medium text-base shadow-lg shadow-[#d97736]/25 transition-all inline-flex items-center">
+                  สำรวจห้องพักทั้งหมด
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+              </div>
+            </div>
+            <div className="md:col-span-6 relative">
+              <div className="rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] bg-gray-200">
+                <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=85" alt="Modern Living" className="w-full h-full object-cover" />
+              </div>
+            </div>
+          </section>
+
+          {/* Highlighted 3 Cards */}
+          <section className="max-w-7xl mx-auto px-6 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div onClick={() => setStatusFilter(statusFilter === 'available' ? 'ALL' : 'available')} className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer flex items-center space-x-4 studio-card-shadow ${statusFilter === 'available' ? 'ring-2 ring-[#d97736]' : 'border-gray-100'}`}>
+                <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                  <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=300&q=80" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-[11px] font-bold uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">Real-time</span>
+                  <h3 className="font-bold text-[#222] text-lg mt-1">ว่างพร้อมอยู่</h3>
+                  <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">เช็คสถานะและย้ายเข้าได้ทันที</p>
+                  <span className="text-xs text-[#d97736] font-semibold mt-2 inline-block">เช็คห้องว่าง &rarr;</span>
+                </div>
+              </div>
+
+              <div onClick={() => setCategory('คอนโด')} className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer flex items-center space-x-4 studio-card-shadow ${category === 'คอนโด' ? 'ring-2 ring-[#d97736]' : 'border-gray-100'}`}>
+                <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                  <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&q=80" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-[11px] font-bold uppercase text-teal-600 bg-teal-50 px-2 py-0.5 rounded">ทำเลเมือง</span>
+                  <h3 className="font-bold text-[#222] text-lg mt-1">คอนโดใกล้รถไฟฟ้า</h3>
+                  <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">เดินทางสะดวก ใกล้ BTS & MRT</p>
+                  <span className="text-xs text-[#d97736] font-semibold mt-2 inline-block">ดูคอนโด &rarr;</span>
+                </div>
+              </div>
+
+              <div onClick={() => setCategory('บ้านเดี่ยว')} className={`bg-white p-5 rounded-2xl border transition-all cursor-pointer flex items-center space-x-4 studio-card-shadow ${category === 'บ้านเดี่ยว' ? 'ring-2 ring-[#d97736]' : 'border-gray-100'}`}>
+                <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                  <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=300&q=80" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1">
+                  <span className="text-[11px] font-bold uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded">พื้นที่กว้าง</span>
+                  <h3 className="font-bold text-[#222] text-lg mt-1">บ้านเดี่ยวให้เช่า</h3>
+                  <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">บ้านพร้อมสวนบรรยากาศดี</p>
+                  <span className="text-xs text-[#d97736] font-semibold mt-2 inline-block">ชมบ้านเดี่ยว &rarr;</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Grid Section */}
+          <section id="grid-section" className="max-w-7xl mx-auto px-6 mb-20 scroll-mt-24">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-3xl font-serif font-bold text-[#222]">คัดสรรโครงการอสังหาฯ แนะนำ</h2>
+                <p className="text-gray-500 text-sm mt-1">โครงการตกแต่งพร้อมเข้าอยู่ แสดงสถานะ Real-time แท้จริง</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mt-4 md:mt-0">
+                {['ALL', 'บ้านเดี่ยว', 'คอนโด', 'ทาวน์โฮม'].map(cat => (
+                  <button key={cat} onClick={() => setCategory(cat)} className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${category === cat ? 'bg-[#222] text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-400'}`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {filtered.map(p => (
+                <div key={p.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 studio-shadow hover:shadow-xl transition-all duration-300 flex flex-col group">
+                  <div className="relative h-52 overflow-hidden bg-gray-100">
+                    <img src={p.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute top-3 left-3">
+                      {p.status === 'available' && <span className="bg-emerald-500 text-white font-bold text-[11px] px-3 py-1 rounded-full shadow">🟢 ว่างพร้อมอยู่</span>}
+                      {p.status === 'reserved' && <span className="bg-amber-500 text-white font-bold text-[11px] px-3 py-1 rounded-full shadow">🟠 ติดจอง</span>}
+                      {p.status === 'rented' && <span className="bg-rose-500 text-white font-bold text-[11px] px-3 py-1 rounded-full shadow">🔴 ปล่อยแล้ว</span>}
+                    </div>
+                  </div>
+
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div>
+                      <span className="text-[11px] font-semibold text-[#d97736] uppercase tracking-wider">{p.category}</span>
+                      <h3 className="font-bold text-[#222] text-lg mt-0.5 line-clamp-1 group-hover:text-[#d97736] transition-colors">{p.title}</h3>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-1">{p.location}</p>
+                    </div>
+
+                    <div className="pt-3 border-t border-gray-100 flex items-baseline justify-between">
+                      <div className="text-xl font-bold text-[#222]">฿{p.price.toLocaleString()}<span className="text-xs text-gray-400 font-normal">/ด.</span></div>
+                      <span className="text-xs text-gray-500">{p.area_sqm} ตร.ม.</span>
+                    </div>
+
+                    <button onClick={() => { setSelectedProperty(p); setShowModal(true); }} className="w-full py-2.5 rounded-xl bg-gray-900 hover:bg-[#d97736] text-white font-medium text-xs transition-colors">
+                      ดูรายละเอียด / นัดชมห้อง
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Footer */}
+          <footer className="bg-[#1a1a1a] text-gray-400 py-10 border-t border-gray-800 text-xs">
+            <div className="max-w-7xl mx-auto px-6 text-center space-y-3">
+              <p className="font-bold text-white text-base">PARALLAX SPACE REAL ESTATE</p>
+              <p>© 2026 Parallax Space Co., Ltd. All rights reserved. Powered by Supabase & React.</p>
+            </div>
+          </footer>
+
+          {/* Booking Modal */}
+          {showModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+              <div className="bg-slate-900 border border-teal-500/40 rounded-3xl p-8 max-w-md w-full text-white space-y-4 relative shadow-2xl">
+                <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-white font-bold text-xl">✕</button>
+                <div className="text-xs font-bold text-teal-400 uppercase tracking-wider">APPOINTMENT FORM</div>
+                <h3 className="text-xl font-bold text-white">
+                  {selectedProperty ? `นัดชมห้อง: ${selectedProperty.title}` : 'แบบฟอร์มนัดชมห้อง'}
+                </h3>
+                <p className="text-xs text-gray-400">กรอกข้อมูลเพื่อให้ทีมงาน Parallax Space ติดต่อกลับและยืนยันเวลานัดชมห้อง</p>
+                <form onSubmit={handleBookingSubmit} className="space-y-3 text-xs">
+                  <div>
+                    <label className="block font-medium mb-1 text-slate-300">ชื่อ-นามสกุล ผู้สนใจเช่า *</label>
+                    <input type="text" required placeholder="สมชาย มั่นคง" value={bookingForm.name} onChange={e => setBookingForm({...bookingForm, name: e.target.value})} className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-teal-400" />
+                  </div>
+                  <div>
+                    <label className="block font-medium mb-1 text-slate-300">เบอร์โทรศัพท์ *</label>
+                    <input type="tel" required placeholder="081-234-5678" value={bookingForm.phone} onChange={e => setBookingForm({...bookingForm, phone: e.target.value})} className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-teal-400" />
+                  </div>
+                  <div>
+                    <label className="block font-medium mb-1 text-slate-300">วันที่พร้อมเข้าอยู่ประมาณ</label>
+                    <input type="date" value={bookingForm.moveInDate} onChange={e => setBookingForm({...bookingForm, moveInDate: e.target.value})} className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-teal-400" />
+                  </div>
+                  <div>
+                    <label className="block font-medium mb-1 text-slate-300">หมายเหตุเพิ่มเติม (ถ้ามี)</label>
+                    <textarea placeholder="เช่น มีเลี้ยงสัตว์เลี้ยงเล็ก, ต้องการสัญญาเช่า 1 ปี..." value={bookingForm.note} onChange={e => setBookingForm({...bookingForm, note: e.target.value})} className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-teal-400 h-20" />
+                  </div>
+                  <button type="submit" className="w-full py-3.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm shadow-lg transition-all mt-2">
+                    🚀 ยืนยันส่งข้อมูลนัดชมห้อง
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

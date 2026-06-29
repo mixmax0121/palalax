@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Prompt', sans-serif;
+    background-color: #f8f6f0; /* Warm studio cream background matching interior studio mockup */
+    color: #222222;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f8f6f0;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1c7b7;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b5a995;
+}
+
+.studio-card-shadow {
+  box-shadow: 0 15px 35px -5px rgba(217, 119, 54, 0.08), 0 5px 15px rgba(0, 0, 0, 0.04);
+}

@@ -43,6 +43,25 @@ export default function App() {
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
+  // Security and entry parameters
+  const [showAdminEntry, setShowAdminEntry] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === 'true') {
+      localStorage.setItem('parallax_space_admin_entry', 'true');
+      return true;
+    }
+    return localStorage.getItem('parallax_space_admin_entry') === 'true';
+  });
+
+  const [isAdminAuthorized, setIsAdminAuthorized] = useState(() => {
+    return localStorage.getItem('parallax_space_admin_authorized') === 'true';
+  });
+
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+
   // Load properties and bookings on component mount
   useEffect(() => {
     async function loadData() {
@@ -152,8 +171,35 @@ export default function App() {
   };
 
   const handleOpenAdmin = () => {
-    setIsAdminMode(true);
-    setViewMode('ADMIN');
+    if (isAdminAuthorized) {
+      setIsAdminMode(true);
+      setViewMode('ADMIN');
+    } else {
+      setShowPasswordModal(true);
+    }
+  };
+
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    // Default secret password is "parallax1234"
+    if (passwordInput === 'parallax1234') {
+      setIsAdminAuthorized(true);
+      localStorage.setItem('parallax_space_admin_authorized', 'true');
+      setIsAdminMode(true);
+      setViewMode('ADMIN');
+      setShowPasswordModal(false);
+      setPasswordError('');
+      setPasswordInput('');
+    } else {
+      setPasswordError('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminAuthorized(false);
+    setIsAdminMode(false);
+    localStorage.removeItem('parallax_space_admin_authorized');
+    setViewMode('HOME');
   };
 
   // Render Full Admin Page View when viewMode is 'ADMIN'
@@ -164,7 +210,10 @@ export default function App() {
         onUpdateStatus={handleUpdateStatus}
         onAddProperty={handleAddProperty}
         onDeleteProperty={handleDeleteProperty}
-        onBackToHome={() => setViewMode('HOME')}
+        onBackToHome={() => {
+          setIsAdminMode(false); // Reset toggle style
+          setViewMode('HOME');
+        }}
         bookings={bookings}
         onUpdateBookingStatus={handleUpdateBookingStatus}
         onDeleteBooking={handleDeleteBooking}
@@ -184,6 +233,7 @@ export default function App() {
         onOpenAdmin={handleOpenAdmin}
         showOnlyAvailable={showOnlyAvailable}
         setShowOnlyAvailable={setShowOnlyAvailable}
+        showAdminEntry={showAdminEntry}
       />
 
       {/* Main Content Area */}
@@ -252,6 +302,58 @@ export default function App() {
         selectedProperty={selectedProperty}
         onAddBooking={handleAddBooking}
       />
+
+      {/* Admin Password Authentication Lock Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-8 max-w-md w-full text-white space-y-6 relative shadow-2xl">
+            <button 
+              onClick={() => { setShowPasswordModal(false); setPasswordError(''); setPasswordInput(''); }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white font-bold text-lg"
+            >
+              ✕
+            </button>
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center border border-amber-500/30">
+                🔒
+              </div>
+              <h3 className="text-xl font-bold text-white">ยืนยันรหัสผ่านผู้ดูแลระบบ</h3>
+              <p className="text-xs text-slate-400">ระบุรหัสผ่านลับของคุณเพื่อปลดล็อกหน้าระบบหลังบ้าน</p>
+            </div>
+
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs text-slate-300 mb-1.5 font-medium">รหัสผ่านลับแอดมิน *</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="กรอกรหัสผ่านลับแอดมิน..."
+                  value={passwordInput}
+                  onChange={e => setPasswordInput(e.target.value)}
+                  className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500"
+                />
+                {passwordError && <p className="text-rose-400 text-xs mt-1.5 font-medium">⚠️ {passwordError}</p>}
+              </div>
+
+              <div className="flex space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowPasswordModal(false); setPasswordError(''); setPasswordInput(''); }}
+                  className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg"
+                >
+                  เข้าสู่ระบบหลังบ้าน
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

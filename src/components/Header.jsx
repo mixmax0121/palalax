@@ -8,7 +8,8 @@ export default function Header({
   isAdminMode, 
   onOpenAdmin,
   showOnlyAvailable,
-  setShowOnlyAvailable
+  setShowOnlyAvailable,
+  showAdminEntry = false
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -33,33 +34,44 @@ export default function Header({
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/60 shadow-sm">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         
-        {/* Brand Logo Left */}
-        <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setActiveCategory('ALL')}>
-          <div className="w-9 h-9 rounded-full border-2 border-[#222] flex items-center justify-center font-bold text-sm text-[#222]">PS</div>
-          <span className="text-xl font-bold tracking-tight text-[#222]">
-            Parallax<span className="font-light text-gray-500">Space</span>
-          </span>
+        {/* Logo */}
+        <div 
+          onClick={() => handleNavClick('ALL')}
+          className="flex items-center space-x-3 cursor-pointer group"
+        >
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#d97736] to-[#c46425] flex items-center justify-center text-white font-bold text-lg shadow-md shadow-[#d97736]/20 group-hover:scale-105 transition-transform">
+            PS
+          </div>
+          <div>
+            <span className="text-xl font-bold tracking-tight text-[#222222]">
+              Parallax<span className="font-light text-[#666666]">Space</span>
+            </span>
+            <p className="text-[10px] text-gray-400 font-medium tracking-wider -mt-1 uppercase">Real Estate Rental</p>
+          </div>
         </div>
 
-        {/* Center Navigation Menu (Matching Interior Studio layout) */}
-        <nav className="hidden md:flex items-center space-x-8 text-sm font-medium text-gray-700">
+        {/* Desktop Navigation Links */}
+        <nav className="hidden md:flex items-center space-x-8 text-sm font-medium">
           {navItems.map((item) => (
             <button
               key={item.value}
               onClick={() => handleNavClick(item.value)}
-              className={`hover:text-[#d97736] transition-colors ${
-                activeCategory === item.value && !showOnlyAvailable
+              className={`transition-colors relative py-1 ${
+                activeCategory === item.value
                   ? 'text-[#d97736] font-bold'
-                  : ''
+                  : 'text-[#444444] hover:text-[#d97736]'
               }`}
             >
               {item.label}
+              {activeCategory === item.value && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#d97736] rounded-full" />
+              )}
             </button>
           ))}
 
-          {/* สถานะห้องว่าง Button */}
+          {/* Quick Filter: Available Only */}
           <button
             onClick={handleStatusCheckClick}
             className={`flex items-center space-x-1.5 transition-colors ${
@@ -73,17 +85,19 @@ export default function Header({
 
         {/* Right Action Area */}
         <div className="hidden md:flex items-center space-x-4">
-          {/* Admin Toggle Switcher */}
-          <button
-            onClick={onOpenAdmin}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
-              isAdminMode
-                ? 'bg-amber-100 text-amber-800 border-amber-300 shadow-sm'
-                : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-            }`}
-          >
-            {isAdminMode ? '🛡️ เปิดระบบหลังบ้าน (Admin)' : 'โหมด Admin'}
-          </button>
+          {/* Admin Toggle Switcher (Shown only if authorized entry) */}
+          {(showAdminEntry || isAdminMode) && (
+            <button
+              onClick={onOpenAdmin}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${
+                isAdminMode
+                  ? 'bg-amber-100 text-amber-800 border-amber-300 shadow-sm'
+                  : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+              }`}
+            >
+              {isAdminMode ? '🛡️ เปิดระบบหลังบ้าน (Admin)' : 'โหมด Admin'}
+            </button>
+          )}
 
           {/* ปุ่ม ติดต่อสอบถาม */}
           <button
@@ -96,14 +110,16 @@ export default function Header({
 
         {/* Mobile menu button */}
         <div className="flex md:hidden items-center space-x-2">
-          <button
-            onClick={onOpenAdmin}
-            className={`p-2 rounded-lg text-xs border ${
-              isAdminMode ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-gray-100 text-gray-600'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" />
-          </button>
+          {(showAdminEntry || isAdminMode) && (
+            <button
+              onClick={onOpenAdmin}
+              className={`p-2 rounded-lg text-xs border ${
+                isAdminMode ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-xl text-gray-600 hover:text-black bg-gray-100"
